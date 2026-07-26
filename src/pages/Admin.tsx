@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import  { useEffect, useState, useCallback , useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface Booking {
@@ -40,7 +40,7 @@ export default function Admin() {
 
   // State Modal Detail Tanggal
   const [selectedDateModal, setSelectedDateModal] = useState<string | null>(null);
-  const [modalSchedules, setModalSchedules] = useState<Booking[]>([]);
+ 
 
   // State Notifikasi Global
   const [notification, setNotification] = useState<NotificationState>({
@@ -49,28 +49,44 @@ export default function Admin() {
     type: 'success',
   });
 
+  const modalSchedules = useMemo(() => {
+  if (!selectedDateModal) return [];
+  return allSchedules.filter((j) => j.tanggal === selectedDateModal);
+}, [allSchedules, selectedDateModal]);
+
   const API_URL = import.meta.env.VITE_API_BASE_URL || '';
 
   // Helper Fetch dengan Retry (Sesuai fetchWithRetry di HTML)
   const fetchWithRetry = useCallback(
-    async (url: string, options: RequestInit = {}, retries = 3, delay = 300): Promise<Response> => {
+  async (
+    url: string,
+    options: RequestInit = {},
+    retries = 3,
+    delay = 300
+  ): Promise<Response> => {
+    let currentDelay = delay;
+
+    for (;;) {
       try {
         const response = await fetch(url, options);
-        if (response.status >= 500 && retries > 0) {
-          await new Promise((r) => setTimeout(r, delay));
-          return fetchWithRetry(url, options, retries - 1, delay * 2);
+
+        if (response.status < 500 || retries <= 0) {
+          return response;
         }
-        return response;
       } catch (err) {
-        if (retries > 0) {
-          await new Promise((r) => setTimeout(r, delay));
-          return fetchWithRetry(url, options, retries - 1, delay * 2);
+        if (retries <= 0) {
+          throw err;
         }
-        throw err;
       }
-    },
-    []
-  );
+
+      await new Promise((resolve) => setTimeout(resolve, currentDelay));
+
+      retries--;
+      currentDelay *= 2;
+    }
+  },
+  []
+);
 
   // Menampilkan Notifikasi
   const showNotification = useCallback((message: string, type: 'success' | 'error' = 'error') => {
@@ -110,14 +126,15 @@ export default function Admin() {
         } else {
           throw new Error(result.err || 'Respon server tidak valid');
         }
-      } catch (error) {
-        if (retriesLeft > 1) {
-          await new Promise((resolve) => setTimeout(resolve, delayMs));
-          return loadUserData(retriesLeft - 1, delayMs * 2);
-        }
-        setLoading(false);
-        showNotification('Gagal total mengambil data dari server.', 'error');
-      }
+      } catch {
+  if (retriesLeft > 1) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    return loadUserData(retriesLeft - 1, delayMs * 2);
+  }
+
+  setLoading(false);
+  showNotification('Gagal total mengambil data dari server.', 'error');
+}
     },
     [API_URL, fetchWithRetry, navigate, showNotification]
   );
@@ -126,16 +143,7 @@ export default function Admin() {
     loadUserData();
   }, [loadUserData]);
 
-  // Update modal schedules jika allSchedules berubah dan modal sedang terbuka
-  useEffect(() => {
-    if (selectedDateModal) {
-      const updated = allSchedules.filter((j) => j.tanggal === selectedDateModal);
-      setModalSchedules(updated);
-      if (updated.length === 0) {
-        setSelectedDateModal(null);
-      }
-    }
-  }, [allSchedules, selectedDateModal]);
+
 
   // Handler Salin Link Member
   const copyMemberLink = () => {
@@ -320,7 +328,6 @@ export default function Admin() {
           onClick={() => {
             if (hasSchedules) {
               setSelectedDateModal(dateStr);
-              setModalSchedules(daySchedules);
             }
           }}
           className={`w-8 h-8 sm:w-12 sm:h-12 aspect-square rounded-full ${circleStyle} cursor-pointer transition transform active:scale-95 flex flex-col items-center justify-center relative shadow-sm mx-auto`}
@@ -762,7 +769,6 @@ function ScheduleDetailItem({
   initialPic,
   initialWa,
   initialDetail,
-  selectedDateModal,
   onSaveKeterangan,
   onAcceptBooking,
   onDeleteBooking,

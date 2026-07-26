@@ -99,10 +99,13 @@ export default function Member({ targetIdentifier }: MemberProps) {
   }, [targetIdentifier]);
 
   useEffect(() => {
-    fetchProfileStatus();
-    fetchJadwalData();
-  }, [targetIdentifier, fetchProfileStatus, fetchJadwalData]);
+  const id = setTimeout(() => {
+    void fetchProfileStatus();
+    void fetchJadwalData();
+  }, 0);
 
+  return () => clearTimeout(id);
+}, [targetIdentifier, fetchProfileStatus, fetchJadwalData]);
   const handleDateClick = (dateStr: string, schedules: JadwalItem[]) => {
     setSelectedDateStr(dateStr);
     setSelectedDaySchedules(schedules);

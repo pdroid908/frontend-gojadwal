@@ -19,7 +19,27 @@ interface BookingProps {
 }
 
 export default function Booking({ ownerUsername: propsOwnerUsername }: BookingProps) {
-  const [targetOwnerUsername, setTargetOwnerUsername] = useState<string>(propsOwnerUsername || "");
+  const targetOwnerUsername = React.useMemo(() => {
+  if (propsOwnerUsername) {
+    return propsOwnerUsername;
+  }
+
+  const pathSegments = window.location.pathname
+    .split("/")
+    .filter(Boolean);
+
+  const bookingIndex = pathSegments.indexOf("booking");
+
+  if (bookingIndex !== -1 && pathSegments.length > bookingIndex + 1) {
+    return pathSegments[bookingIndex + 1];
+  }
+
+  if (pathSegments.length > 0) {
+    return pathSegments[pathSegments.length - 1];
+  }
+
+  return "";
+}, [propsOwnerUsername]);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   
   // Inisialisasi State dengan mengecek localStorage (Membaca Cache terlebih dahulu)
@@ -72,79 +92,113 @@ export default function Booking({ ownerUsername: propsOwnerUsername }: BookingPr
       .replace(/'/g, '&#039;');
   }, []);
 
-  // Deteksi path URL yang robust
-  useEffect(() => {
-    if (propsOwnerUsername) {
-      setTargetOwnerUsername(propsOwnerUsername);
-      return;
-    }
-    const pathSegments = window.location.pathname.split("/").filter(Boolean);
-    const bookingIndex = pathSegments.indexOf("booking");
-    if (bookingIndex !== -1 && pathSegments.length > bookingIndex + 1) {
-      setTargetOwnerUsername(pathSegments[bookingIndex + 1]);
-    } else if (pathSegments.length > 0) {
-      setTargetOwnerUsername(pathSegments[pathSegments.length - 1]);
-    }
-  }, [propsOwnerUsername]);
-
+ 
   // Fungsi Fetch dengan Retry Mechanism
-  const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 3, delay = 500): Promise<Response> => {
-    try {
-      const response = await fetch(url, options);
-      if (response.status >= 500 && retries > 0) {
-        await new Promise((r) => setTimeout(r, delay));
-        return fetchWithRetry(url, options, retries - 1, delay * 2);
-      }
-      return response;
-    } catch (err) {
-      if (retries > 0) {
-        await new Promise((r) => setTimeout(r, delay));
-        return fetchWithRetry(url, options, retries - 1, delay * 2);
-      }
-      throw err;
+  const fetchWithRetry = useCallback(
+  async function fetchWithRetry(
+  url: string,
+  options: RequestInit = {},
+  retries = 3,
+  delay = 500
+): Promise<Response> {
+  try {
+    const response = await fetch(url, options);
+
+    if (response.status >= 500 && retries > 0) {
+      await new Promise((r) => setTimeout(r, delay));
+      return fetchWithRetry(url, options, retries - 1, delay * 2);
     }
-  };
 
-  const fetchJadwalBookingData = useCallback(async (retriesLeft = 3, delayMs = 500): Promise<void> => {
-    if (!targetOwnerUsername) return;
-
-    try {
-      const API_URL = import.meta.env.VITE_API_BASE_URL || "";
-      const res = await fetchWithRetry(`${API_URL}/api/booking/jadwal/${encodeURIComponent(targetOwnerUsername)}?t=${Date.now()}`, {
-        headers: { 'Cache-Control': 'no-cache' }
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : (data.data || []);
-        setGlobalJadwalList(list);
-        localStorage.setItem(`booking_cache_${targetOwnerUsername}`, JSON.stringify(list));
-      } else if (retriesLeft > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-        return fetchJadwalBookingData(retriesLeft - 1, delayMs * 2);
-      } else {
-        showNotification("Gagal mengambil data jadwal owner.", "error");
-      }
-    } catch (err) {
-      console.error("Error fetching booking data:", err);
-      if (retriesLeft > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-        return fetchJadwalBookingData(retriesLeft - 1, delayMs * 2);
-      }
+    return response;
+  } catch (err) {
+    if (retries > 0) {
+      await new Promise((r) => setTimeout(r, delay));
+      return fetchWithRetry(url, options, retries - 1, delay * 2);
     }
-  }, [targetOwnerUsername]);
 
-  useEffect(() => {
-  if (targetOwnerUsername) {
-    // Selalu ambil data terbaru dari server di background setiap kali halaman dimuat,
-    // sehingga cache lokal otomatis ter-update dengan data terbaru.
-    fetchJadwalBookingData();
+    throw err;
   }
-}, [targetOwnerUsername, fetchJadwalBookingData]);
+},
+  []
+);
+
   const showNotification = (message: string, type: 'success' | 'error' = 'error') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 5000);
   };
+
+  const fetchJadwalBookingData = useCallback(async (): Promise<void> => {
+  if (!targetOwnerUsername) return;
+
+  const API_URL = import.meta.env.VITE_API_BASE_URL || "";
+
+  let retriesLeft = 3;
+  let delayMs = 500;
+
+  while (true) {
+    try {
+      const res = await fetchWithRetry(
+        `${API_URL}/api/booking/jadwal/${encodeURIComponent(targetOwnerUsername)}?t=${Date.now()}`,
+        {
+          headers: {
+            "Cache-Control": "no-cache",
+          },
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.data ?? []);
+
+        setGlobalJadwalList(list);
+        localStorage.setItem(
+          `booking_cache_${targetOwnerUsername}`,
+          JSON.stringify(list)
+        );
+
+        return;
+      }
+
+      if (retriesLeft <= 0) {
+        setNotification({
+          message: "Gagal mengambil data jadwal owner.",
+          type: "error",
+        });
+
+        setTimeout(() => setNotification(null), 5000);
+        return;
+      }
+    } catch (err) {
+      console.error(err);
+
+      if (retriesLeft <= 0) {
+        setNotification({
+          message: "Gagal mengambil data jadwal owner.",
+          type: "error",
+        });
+
+        setTimeout(() => setNotification(null), 5000);
+        return;
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+    retriesLeft--;
+    delayMs *= 2;
+  }
+}, [targetOwnerUsername, fetchWithRetry]);
+
+
+useEffect(() => {
+  if (!targetOwnerUsername) return;
+
+  const id = setTimeout(() => {
+    void fetchJadwalBookingData();
+  }, 0);
+
+  return () => clearTimeout(id);
+}, [targetOwnerUsername, fetchJadwalBookingData]);
 
   const handleDateClick = (dateStr: string, daySchedules: JadwalItem[]) => {
     setSelectedDateStr(dateStr);

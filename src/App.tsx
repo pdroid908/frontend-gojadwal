@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useParams } from 'react-router-dom';
-import Login from './pages/login';
+import Login from './pages/Login';
 import Register from './pages/Register';
 import Admin from './pages/Admin'; 
 import Booking from './pages/Booking';
@@ -261,7 +261,7 @@ function HomeContent() {
 
 function MemberRouteWrapper() {
   const { id } = useParams();
-  return <Member targetIdentifier={id} />;
+  return <Member targetIdentifier={id || ""} />;
 }
 
 // Wrapper untuk mengambil parameter Username dari path /booking/:username
