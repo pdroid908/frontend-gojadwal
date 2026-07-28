@@ -54,8 +54,7 @@ export default function Admin() {
   return allSchedules.filter((j) => j.tanggal === selectedDateModal);
 }, [allSchedules, selectedDateModal]);
 
-  const API_URL = import.meta.env.VITE_API_BASE_URL || '';
-
+  
   // Helper Fetch dengan Retry (Sesuai fetchWithRetry di HTML)
   const fetchWithRetry = useCallback(
   async (
@@ -97,7 +96,7 @@ export default function Admin() {
   const loadUserData = useCallback(
     async (retriesLeft = 3, delayMs = 1000) => {
       try {
-        const response = await fetchWithRetry(`${API_URL}/user`, {
+        const response = await fetchWithRetry(`/user`, {
           method: 'GET',
           headers: { 'Cache-Control': 'no-cache' },
           credentials: 'include',
@@ -136,7 +135,7 @@ export default function Admin() {
   showNotification('Gagal total mengambil data dari server.', 'error');
 }
     },
-    [API_URL, fetchWithRetry, navigate, showNotification]
+    [ fetchWithRetry, navigate, showNotification]
   );
 
   useEffect(() => {
@@ -190,7 +189,7 @@ export default function Admin() {
   // Handler Aksi CRUD Jadwal
   const handleAcceptBooking = async (jadwalId: string) => {
     try {
-      const response = await fetchWithRetry(`${API_URL}/user/accept/${jadwalId}`, {
+      const response = await fetchWithRetry(`/user/accept/${jadwalId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         credentials: 'include',
@@ -212,7 +211,7 @@ export default function Admin() {
     if (!yakin) return;
 
     try {
-      const response = await fetchWithRetry(`${API_URL}/user/jadwal/${jadwalId}`, {
+      const response = await fetchWithRetry(`/user/jadwal/${jadwalId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         credentials: 'include',
@@ -236,7 +235,7 @@ export default function Admin() {
     if (ket.trim()) finalKeterangan += `- Keperluan: ${ket.trim()}`;
 
     try {
-      const response = await fetchWithRetry(`${API_URL}/user/jadwal/keterangan/${jadwalId}`, {
+      const response = await fetchWithRetry(`/user/jadwal/keterangan/${jadwalId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({ keterangan: finalKeterangan }),
@@ -257,7 +256,7 @@ export default function Admin() {
   // Logout Handler
   const handleLogout = async () => {
     try {
-      await fetch(`${API_URL}/logout`, {
+      await fetch(`/logout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

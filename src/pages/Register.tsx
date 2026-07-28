@@ -41,8 +41,8 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const API_URL = import.meta.env.VITE_API_BASE_URL;
-      const response = await fetch(`${API_URL}/regis`, {
+      
+      const response = await fetch(`/regis`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

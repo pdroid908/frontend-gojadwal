@@ -77,8 +77,8 @@ export default function Member({ targetIdentifier }: MemberProps) {
   const fetchJadwalData = useCallback(async () => {
     if (!targetIdentifier) return;
     try {
-      const API_URL = import.meta.env.VITE_API_BASE_URL || '';
-      const endpoint = `${API_URL}/api/public/jadwal/${encodeURIComponent(targetIdentifier)}`;
+     
+      const endpoint = `/api/public/jadwal/${encodeURIComponent(targetIdentifier)}`;
 
       const res = await fetch(endpoint, {
         method: 'GET',
@@ -139,8 +139,8 @@ export default function Member({ targetIdentifier }: MemberProps) {
     const formattedKeterangan = `[PIC: ${bookPic.trim()}] [WA: ${bookWhatsapp.trim()}] - Keperluan: ${bookKeterangan ? bookKeterangan.trim() : '-'}`;
 
     try {
-      const API_URL = import.meta.env.VITE_API_BASE_URL || '';
-      const res = await fetch(`${API_URL}/api/booking/${encodeURIComponent(targetIdentifier)}`, {
+      
+      const res = await fetch(`/api/booking/${encodeURIComponent(targetIdentifier)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

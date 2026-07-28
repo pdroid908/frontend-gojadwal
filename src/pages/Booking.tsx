@@ -130,7 +130,6 @@ export default function Booking({ ownerUsername: propsOwnerUsername }: BookingPr
   const fetchJadwalBookingData = useCallback(async (): Promise<void> => {
   if (!targetOwnerUsername) return;
 
-  const API_URL = import.meta.env.VITE_API_BASE_URL || "";
 
   let retriesLeft = 3;
   let delayMs = 500;
@@ -138,7 +137,7 @@ export default function Booking({ ownerUsername: propsOwnerUsername }: BookingPr
   while (true) {
     try {
       const res = await fetchWithRetry(
-        `${API_URL}/api/booking/jadwal/${encodeURIComponent(targetOwnerUsername)}?t=${Date.now()}`,
+        `/api/booking/jadwal/${encodeURIComponent(targetOwnerUsername)}?t=${Date.now()}`,
         {
           headers: {
             "Cache-Control": "no-cache",
@@ -241,8 +240,8 @@ useEffect(() => {
     setLoadingText("Mengirimkan jadwal booking Anda...");
 
     try {
-      const API_URL = import.meta.env.VITE_API_BASE_URL || "";
-      const response = await fetchWithRetry(`${API_URL}/api/booking/${encodeURIComponent(targetOwnerUsername)}`, {
+      
+      const response = await fetchWithRetry(`/api/booking/${encodeURIComponent(targetOwnerUsername)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)

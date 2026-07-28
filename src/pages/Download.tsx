@@ -24,8 +24,8 @@ export default function Download() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const API_URL = import.meta.env.VITE_API_BASE_URL;
-        const response = await fetch(`${API_URL}/download`, {
+        
+        const response = await fetch(`/download`, {
           method: 'GET',
           headers: { 'Cache-Control': 'no-cache' },
           credentials: 'include',

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Settings() {
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_BASE_URL || '';
+
   
   // State Ganti Username
   const [usernameBaru, setUsernameBaru] = useState('');
@@ -43,7 +43,7 @@ export default function Settings() {
     hideNotif();
 
     try {
-      const res = await fetch(`${API_URL}/user/change-username`, {
+      const res = await fetch(`/user/change-username`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ export default function Settings() {
     hideNotif();
 
     try {
-      const res = await fetch(`${API_URL}/user/change-password`, {
+      const res = await fetch(`/user/change-password`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
